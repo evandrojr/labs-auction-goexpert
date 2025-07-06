@@ -17,6 +17,7 @@ type AuctionEntityMongo struct {
 	Condition   auction_entity.ProductCondition `bson:"condition"`
 	Status      auction_entity.AuctionStatus    `bson:"status"`
 	Timestamp   int64                           `bson:"timestamp"`
+	ExpiresAt   int64                           `bson:"expires_at"`
 }
 type AuctionRepository struct {
 	Collection *mongo.Collection
@@ -39,6 +40,7 @@ func (ar *AuctionRepository) CreateAuction(
 		Condition:   auctionEntity.Condition,
 		Status:      auctionEntity.Status,
 		Timestamp:   auctionEntity.Timestamp.Unix(),
+		ExpiresAt:   auctionEntity.ExpiresAt.Unix(),
 	}
 	_, err := ar.Collection.InsertOne(ctx, auctionEntityMongo)
 	if err != nil {

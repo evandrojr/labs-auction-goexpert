@@ -29,6 +29,7 @@ func (ar *AuctionRepository) FindAuctionById(
 		Condition:   auctionEntityMongo.Condition,
 		Status:      auctionEntityMongo.Status,
 		Timestamp:   time.Unix(auctionEntityMongo.Timestamp, 0),
+		ExpiresAt:   time.Unix(auctionEntityMongo.ExpiresAt, 0),
 	}, nil
 }
 
@@ -74,6 +75,44 @@ func (repo *AuctionRepository) FindAuctions(
 			Description: auction.Description,
 			Condition:   auction.Condition,
 			Timestamp:   time.Unix(auction.Timestamp, 0),
+			ExpiresAt:   time.Unix(auction.ExpiresAt, 0),
+		})
+	}
+
+	return auctionsEntity, nil
+}
+
+func (ar *AuctionRepository) FindExpiredAuctions(
+	ctx context.Context) ([]auction_entity.Auction, *internal_error.InternalError) {
+	filter := bson.M{
+		"status":     auction_entity.Active,
+		"expires_at": bson.M{"$lte": time.Now().Unix()},
+	}
+
+	cursor, err := ar.Collection.Find(ctx, filter)
+	if err != nil {
+		logger.Error("Error trying to find expired auctions", err)
+		return nil, internal_error.NewInternalServerError("Error trying to find expired auctions")
+	}
+	defer cursor.Close(ctx)
+
+	var auctionsMongo []AuctionEntityMongo
+	if err := cursor.All(ctx, &auctionsMongo); err != nil {
+		logger.Error("Error decoding expired auctions", err)
+		return nil, internal_error.NewInternalServerError("Error decoding expired auctions")
+	}
+
+	var auctionsEntity []auction_entity.Auction
+	for _, auction := range auctionsMongo {
+		auctionsEntity = append(auctionsEntity, auction_entity.Auction{
+			Id:          auction.Id,
+			ProductName: auction.ProductName,
+			Category:    auction.Category,
+			Description: auction.Description,
+			Condition:   auction.Condition,
+			Status:      auction.Status,
+			Timestamp:   time.Unix(auction.Timestamp, 0),
+			ExpiresAt:   time.Unix(auction.ExpiresAt, 0),
 		})
 	}
 

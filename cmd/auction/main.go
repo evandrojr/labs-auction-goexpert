@@ -12,10 +12,14 @@ import (
 	"fullcycle-auction_go/internal/usecase/auction_usecase"
 	"fullcycle-auction_go/internal/usecase/bid_usecase"
 	"fullcycle-auction_go/internal/usecase/user_usecase"
+	"fullcycle-auction_go/internal/worker/auction_closer"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	"os"
+	"strconv"
+	"time"
 )
 
 func main() {
@@ -26,15 +30,33 @@ func main() {
 		return
 	}
 
-	databaseConnection, err := mongodb.NewMongoDBConnection(ctx)
+	auctionDurationMinutes, err := strconv.Atoi(os.Getenv("AUCTION_DURATION_MINUTES"))
+	if err != nil {
+		log.Fatal("Error trying to load AUCTION_DURATION_MINUTES env variable")
+		return
+	}
+
+	auctionCloserIntervalSeconds, err := strconv.Atoi(os.Getenv("AUCTION_CLOSER_INTERVAL_SECONDS"))
+	if err != nil {
+		log.Fatal("Error trying to load AUCTION_CLOSER_INTERVAL_SECONDS env variable")
+		return
+	}
+
+	client, databaseConnection, err := mongodb.NewMongoDBConnection(ctx)
+	defer client.Disconnect(ctx)
 	if err != nil {
 		log.Fatal(err.Error())
 		return
 	}
 
+	auctionRepository := auction.NewAuctionRepository(databaseConnection)
+	auctionCloserWorker := auction_closer.NewAuctionCloserWorker(
+	auctionRepository, time.Duration(auctionCloserIntervalSeconds)*time.Second)
+	go auctionCloserWorker.Start()
+
 	router := gin.Default()
 
-	userController, bidController, auctionsController := initDependencies(databaseConnection)
+	userController, bidController, auctionsController := initDependencies(databaseConnection, auctionRepository, time.Duration(auctionDurationMinutes)*time.Minute)
 
 	router.GET("/auction", auctionsController.FindAuctions)
 	router.GET("/auction/:auctionId", auctionsController.FindAuctionById)
@@ -47,19 +69,18 @@ func main() {
 	router.Run(":8080")
 }
 
-func initDependencies(database *mongo.Database) (
+func initDependencies(database *mongo.Database, auctionRepository *auction.AuctionRepository, auctionDuration time.Duration) (
 	userController *user_controller.UserController,
 	bidController *bid_controller.BidController,
 	auctionController *auction_controller.AuctionController) {
 
-	auctionRepository := auction.NewAuctionRepository(database)
 	bidRepository := bid.NewBidRepository(database, auctionRepository)
 	userRepository := user.NewUserRepository(database)
 
 	userController = user_controller.NewUserController(
 		user_usecase.NewUserUseCase(userRepository))
 	auctionController = auction_controller.NewAuctionController(
-		auction_usecase.NewAuctionUseCase(auctionRepository, bidRepository))
+		auction_usecase.NewAuctionUseCase(auctionRepository, bidRepository, auctionDuration))
 	bidController = bid_controller.NewBidController(bid_usecase.NewBidUseCase(bidRepository))
 
 	return

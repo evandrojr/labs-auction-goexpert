@@ -33,7 +33,8 @@ type WinningInfoOutputDTO struct {
 
 func NewAuctionUseCase(
 	auctionRepositoryInterface auction_entity.AuctionRepositoryInterface,
-	bidRepositoryInterface bid_entity.BidEntityRepository) AuctionUseCaseInterface {
+	bidRepositoryInterface bid_entity.BidEntityRepository,
+	auctionDuration time.Duration) AuctionUseCaseInterface {
 	return &AuctionUseCase{
 		auctionRepositoryInterface: auctionRepositoryInterface,
 		bidRepositoryInterface:     bidRepositoryInterface,
@@ -64,6 +65,7 @@ type AuctionStatus int64
 type AuctionUseCase struct {
 	auctionRepositoryInterface auction_entity.AuctionRepositoryInterface
 	bidRepositoryInterface     bid_entity.BidEntityRepository
+	auctionDuration           time.Duration
 }
 
 func (au *AuctionUseCase) CreateAuction(
@@ -73,7 +75,8 @@ func (au *AuctionUseCase) CreateAuction(
 		auctionInput.ProductName,
 		auctionInput.Category,
 		auctionInput.Description,
-		auction_entity.ProductCondition(auctionInput.Condition))
+		auction_entity.ProductCondition(auctionInput.Condition),
+		au.auctionDuration)
 	if err != nil {
 		return err
 	}

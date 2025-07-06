@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mongodb_test:
+    image: mongo:latest
+    container_name: mongodb_test
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+    ports:
+      - "27018:27017"
+    networks:
+      - test_network
+
+  go_test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      - mongodb_test
+    environment:
+      - MONGODB_URL=mongodb://admin:admin@mongodb_test:27017/auctions?authSource=admin
+    networks:
+      - test_network
+
+networks:
+  test_network:
+    driver: bridge
