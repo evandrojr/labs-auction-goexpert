@@ -3,8 +3,9 @@ package auction_entity
 import (
 	"context"
 	"fullcycle-auction_go/internal/internal_error"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func CreateAuction(
@@ -55,7 +56,7 @@ type ProductCondition int
 type AuctionStatus int
 
 const (
-	Active AuctionStatus = iota
+	Active AuctionStatus = iota + 1
 	Completed
 )
 

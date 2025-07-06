@@ -6,11 +6,13 @@ import (
 	"fullcycle-auction_go/internal/entity/auction_entity"
 	"fullcycle-auction_go/internal/infra/database/auction"
 	"fullcycle-auction_go/internal/worker/auction_closer"
-	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
+	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestAuctionCloserWorker(t *testing.T) {
@@ -37,6 +39,8 @@ func TestAuctionCloserWorker(t *testing.T) {
 	auctionEntity, err := auction_entity.CreateAuction(
 		"Test Product", "Electronics", "Description", auction_entity.New, expiresIn)
 	assert.Nil(t, err)
+	log.Println("auctionEntity.Status:", auctionEntity.Status)
+	assert.Equal(t, auction_entity.Active, auctionEntity.Status)
 
 	internalErr := auctionRepo.CreateAuction(ctx, auctionEntity)
 	assert.Nil(t, internalErr)
@@ -53,5 +57,8 @@ func TestAuctionCloserWorker(t *testing.T) {
 	foundAuction, internalErr := auctionRepo.FindAuctionById(ctx, auctionEntity.Id)
 	assert.Nil(t, internalErr)
 	assert.NotNil(t, foundAuction)
+	log.Println("auctionEntity.Status:", foundAuction.Status)
+
 	assert.Equal(t, auction_entity.Completed, foundAuction.Status)
+
 }
