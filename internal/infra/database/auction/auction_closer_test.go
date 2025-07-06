@@ -40,6 +40,7 @@ func TestAuctionCloserWorker(t *testing.T) {
 		"Test Product", "Electronics", "Description", auction_entity.New, expiresIn)
 	assert.Nil(t, err)
 	log.Println("auctionEntity.Status:", auctionEntity.Status)
+	// = 1
 	assert.Equal(t, auction_entity.Active, auctionEntity.Status)
 
 	internalErr := auctionRepo.CreateAuction(ctx, auctionEntity)
@@ -58,7 +59,7 @@ func TestAuctionCloserWorker(t *testing.T) {
 	assert.Nil(t, internalErr)
 	assert.NotNil(t, foundAuction)
 	log.Println("auctionEntity.Status:", foundAuction.Status)
-
+	// = 2
 	assert.Equal(t, auction_entity.Completed, foundAuction.Status)
 
 }
